@@ -79,19 +79,55 @@ export default {
     async getDatabase(){
       return new Promise((resolve, reject) => {
         if(this.database){
-          resolve('Success');
+          resolve(this.database)
         }
 
-        let request = window.indexedDB.open('todomvcDB', 1);
+        let request = window.indexedDB.open('todomvcDB', 2)
 
         request.onerror = event => {
-          console.log('ERROR: unable to open database', event)
-          reject('Error');
+          console.error('ERROR: Unable to open database', event)
+          reject('Error')
         }
 
         request.onsuccess = event => {
-          this.database = event.target.result;
-          resolve(this.database);
+          this.database = event.target.result
+          resolve(this.database)
+        }
+
+        request.onupgradeneeded = event => {
+          let database = event.target.result;
+
+          database.createObjectStore("todos", {
+            autoIncrement: true,
+            keyPath: 'id'
+          })
+        }
+      })
+    },
+
+    async getTodoStore(){
+      this.database = await this.getDatabase()
+
+      return new Promise((resolve, reject) => {
+        const transaction = this.database.transaction("todos", 'readonly')
+        const store = transaction.objectStore("todos")
+
+        let todoList = []
+
+        store.openCursor().onsuccess = event => {
+          const cursor = event.target.result
+          if(cursor){
+            todoList.push(cursor.value)
+            cursor.continue()
+          }
+        }
+
+        transaction.oncomplete = () => {
+          resolve(todoList)
+        }
+
+        transaction.onerror = event => {
+          reject(event)
         }
       })
     },
@@ -114,6 +150,9 @@ export default {
     updateTodo(todo){
       this.todos.find(item => item === todo).completed = !todo.completed
     }
+  },
+  async created(){
+    this.todos = await this.getTodoStore()
   }
 }
 </script>
@@ -122,8 +161,9 @@ export default {
   <section class="todoapp">
     <header class="header">
       <h1>todos</h1>
+      <h2>Database</h2>
+      <p>{{ database }}</p>
       <button @click="getDatabase">Get Database</button>
-      {{ database }}
       <input
           class="new-todo"
           autofocus
