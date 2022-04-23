@@ -1,4 +1,7 @@
-const { defineConfig } = require('@vue/cli-service')
+const {defineConfig} = require('@vue/cli-service')
 module.exports = defineConfig({
-  transpileDependencies: true
+    pwa: {
+        'name': 'Todo MVC'
+    },
+    transpileDependencies: true
 })
