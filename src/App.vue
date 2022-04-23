@@ -2,6 +2,7 @@
 export default {
   name: 'App',
   data: () => ({
+    database: null,
     todos: [],
     newTodo: '',
     editedTodo: null,
@@ -75,6 +76,26 @@ export default {
       this.editedTodo = todo
     },
 
+    async getDatabase(){
+      return new Promise((resolve, reject) => {
+        if(this.database){
+          resolve('Success');
+        }
+
+        let request = window.indexedDB.open('todomvcDB', 1);
+
+        request.onerror = event => {
+          console.log('ERROR: unable to open database', event)
+          reject('Error');
+        }
+
+        request.onsuccess = event => {
+          this.database = event.target.result;
+          resolve(this.database);
+        }
+      })
+    },
+
     pluralize(word, count){
       return word + (count === 1 ? '' : 's')
     },
@@ -101,6 +122,8 @@ export default {
   <section class="todoapp">
     <header class="header">
       <h1>todos</h1>
+      <button @click="getDatabase">Get Database</button>
+      {{ database }}
       <input
           class="new-todo"
           autofocus
