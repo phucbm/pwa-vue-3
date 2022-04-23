@@ -32,6 +32,10 @@ export default {
       set(value){
         this.todos.forEach(todo => {
           todo.completed = value
+
+          this.saveTodo({
+            ...todo
+          })
         })
       }
     }
@@ -52,6 +56,7 @@ export default {
         return
       }
       this.todos.push(todoItem)
+      this.saveTodo(todoItem)
       this.newTodo = ''
     },
 
@@ -66,6 +71,10 @@ export default {
       }
       this.editedTodo = null
       todo.title = todo.title.trim()
+      this.saveTodo({
+        ...todo,
+        title: todo.title
+      })
       if(!todo.title){
         this.removeTodo(todo)
       }
@@ -147,8 +156,31 @@ export default {
       this.todos.splice(index, 1)
     },
 
+    async saveTodo(todo){
+      this.database = await this.getDatabase();
+
+      return new Promise((resolve, reject) => {
+        const transaction = this.database.transaction('todos', 'readwrite');
+        const store = transaction.objectStore('todos')
+
+        store.put(todo);
+
+        transaction.oncomplete = () => {
+          resolve('Item saved')
+        }
+
+        transaction.onerror = event => {
+          reject(event)
+        }
+      })
+    },
+
     updateTodo(todo){
-      this.todos.find(item => item === todo).completed = !todo.completed
+      this.todos.find(item => item === todo).completed = !todo.completed;
+
+      this.saveTodo({
+        ...todo
+      })
     }
   },
   async created(){
@@ -161,9 +193,6 @@ export default {
   <section class="todoapp">
     <header class="header">
       <h1>todos</h1>
-      <h2>Database</h2>
-      <p>{{ database }}</p>
-      <button @click="getDatabase">Get Database</button>
       <input
           class="new-todo"
           autofocus
